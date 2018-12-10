@@ -65,6 +65,8 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
+    "jsonp": "^0.2.1",
+    "store2": "^2.7.1",
     "vue": "^2.5.16",
     "vue-electron": "^1.0.6",
     "vue-router": "^3.0.1",
