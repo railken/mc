@@ -30,3 +30,7 @@ build_script:
   - yarn build
 
 test: off
+
+artifacts:
+  - path: build\*.exe
+    name: Releases
