@@ -72,6 +72,10 @@ let rendererConfig = {
         use: 'node-loader'
       },
       {
+        test: /\.styl$/,
+        loader: ['style-loader', 'css-loader', 'stylus-loader']
+      },
+      {
         test: /\.vue$/,
         use: {
           loader: 'vue-loader',
