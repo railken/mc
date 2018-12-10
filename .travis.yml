@@ -37,6 +37,15 @@ install:
 script:
 #- xvfb-maybe node_modules/.bin/karma start test/unit/karma.conf.js
 - yarn run build
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key: $GH_TOKEN
+  file_glob: true
+  file:
+    - "build/mc*.exe"
+  on:
+    tags: false
 branches:
   only:
   - master

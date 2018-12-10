@@ -8,6 +8,6 @@ describe('LandingPage.vue', () => {
       render: h => h(LandingPage)
     }).$mount()
 
-    // expect(vm.$el.querySelector('img').textContent).to.contain('Welcome to your new project!')
+    expect(vm.$el.querySelector('h3').textContent).to.contain('Test')
   })
 })

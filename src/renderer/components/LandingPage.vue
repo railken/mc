@@ -1,5 +1,6 @@
 <template>
   <div class="wrapper">
+    <h3>Test</h3>
     <img class="divWithBgImage" src="~@/assets/bg.png" height="400">
   </div>
 </template>
