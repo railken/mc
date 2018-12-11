@@ -5,6 +5,7 @@
         Ban
       </div>
       <div class="md-body-1">Nice day to fish, ain't it?</div>
+      <v-alert v-if="error" type="error" :value="true">{{ error }}</v-alert>
       <div class="form mt-4">
           <v-text-field
             prepend-icon="person"
@@ -24,7 +25,7 @@
 
       <div class="actions fluid">
         <div class='fill'></div>
-        <v-btn  dark color="primary" @click="login()">Log in</v-btn>
+        <v-btn dark color="primary" @click="login()" :loading="loading" :disabled="loading">Log in</v-btn>
       </div>
 
     </v-card>
@@ -34,9 +35,13 @@
 
 <script>
 import axios from 'axios'
-import store from 'store2'
 
 export default {
+  props: {
+    user: {
+      required: true
+    }
+  },
   data () {
     return {
       form: {
@@ -49,6 +54,13 @@ export default {
   methods: {
     login () {
       console.log(this.form)
+
+      if (!this.form.username || !this.form.password) {
+        return
+      }
+
+      this.loading = true
+
       this.api.post('/authenticate', {
         clientToken: 'MC-01-LAUNCHER',
         requestUser: true,
@@ -60,17 +72,18 @@ export default {
         },
         message: 'hello'
       }).then(response => {
-        window.user = response.data
-        store.set('user', response.data)
-        window.location.href = '/'
-      }).catch(response => {
-        console.log(response)
+        this.$emit('change', response.data)
+        this.$router.push({name: 'main'})
+        this.loading = false
+      }).catch(error => {
+        this.error = error.response.data.errorMessage
+        this.loading = false
       })
     }
   },
   mounted () {
-    if (window.user) {
-      window.location.href = '/'
+    if (this.user) {
+      this.$router.push({name: 'main'})
     }
 
     this.api = axios.create({

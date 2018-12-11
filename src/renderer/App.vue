@@ -22,8 +22,7 @@
       
     </v-toolbar>
     <v-content>
-      <router-view></router-view>
-    
+      <router-view :user="user" @change="setUser($event)"></router-view>
     </v-content>
     <v-footer app><div class='mx-2'>Lorem ipsum dolor sit amet, consectetur adipiscing elit</div></v-footer>
   </v-app>
@@ -38,15 +37,18 @@
         user: null
       }
     },
-    mounted () {
-      this.user = window.user
-    },
     methods: {
+      setUser ($event) {
+        this.user = $event
+        store.set('user', $event)
+      },
       logout () {
-        window.user = null
-        store.set('user', null)
-        window.location.href = '/'
+        this.setUser(null)
+        this.$router.push({name: 'auth'})
       }
+    },
+    mounted () {
+      this.setUser(store.get('user'))
     }
   }
 </script>

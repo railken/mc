@@ -1,7 +1,8 @@
+import store from 'store2'
+
 export default {
-  auth (to, from, next) {
-    console.log(window.user)
-    next(window.user ? true : {
+  auth: (to, from, next) => {
+    next(store.get('user') ? true : {
       name: 'auth'
     })
   }

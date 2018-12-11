@@ -24,14 +24,17 @@
 </template>
 <script>
   export default {
+    props: {
+      user: {
+        required: true
+      }
+    },
     data () {
       return {
-        user: null,
         mods: []
       }
     },
     mounted () {
-      this.user = window.user
       this.mods = [
         {
           img: 'https://i1.wp.com/www.minecraftrocket.com/wp-content/uploads/2015/03/Minecraft-Wallpaper-1.jpg',
