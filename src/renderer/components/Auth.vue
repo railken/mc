@@ -72,7 +72,7 @@ export default {
         },
         message: 'hello'
       }).then(response => {
-        this.$emit('change', response.data)
+        this.$emit('update:user', response.data)
         this.$router.push({name: 'main'})
         this.loading = false
       }).catch(error => {

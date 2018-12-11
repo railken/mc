@@ -13,6 +13,12 @@ export default new Router({
       component: require('@/components/Main').default
     },
     {
+      path: '/settings',
+      name: 'settings',
+      beforeEnter: Guard.auth,
+      component: require('@/components/Settings').default
+    },
+    {
       path: '/auth',
       name: 'auth',
       component: require('@/components/Auth').default
