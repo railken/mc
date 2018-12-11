@@ -62,13 +62,17 @@ export default {
       }).then(response => {
         window.user = response.data
         store.set('user', response.data)
-        this.$router.push('/')
+        window.location.href = '/'
       }).catch(response => {
         console.log(response)
       })
     }
   },
   mounted () {
+    if (window.user) {
+      window.location.href = '/'
+    }
+
     this.api = axios.create({
       baseURL: 'https://authserver.mojang.com',
       mode: 'no-cors',
@@ -81,26 +85,27 @@ export default {
 }
 </script>
 
-<style lang="scss">
-.centered-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  height: 100vh;
-  .title {
-    text-align: center;
-    margin-bottom: 30px;
-    img {
-      margin-bottom: 16px;
-      max-width: 220px;
-    }
+<style >
+  .centered-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    height: 100vh;
   }
-  .actions {
-    .md-button {
-      margin: 0;
-    }
+  .centered-container .title {
+      text-align: center;
+      margin-bottom: 30px;
   }
+  .centered-container img {
+    margin-bottom: 16px;
+    max-width: 220px;
+  }
+
+  .actions .md-button {
+    margin: 0;
+  }
+
   .form {
     margin-bottom: 60px;
   }
@@ -121,5 +126,4 @@ export default {
     max-width: 400px;
     position: relative;
   }
-}
 </style>
