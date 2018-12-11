@@ -1,8 +1,8 @@
 <template>
   <v-container fluid grid-list-md>
     <v-layout row wrap>
-      <v-flex xs12 md6 v-for="mod in mods" pa-4>
-        <v-card>
+      <v-flex xs12 md6 v-for="mod in mods" pa-4 >
+        <v-card class="mod">
           <v-img :src="mod.img" aspect-ratio="2.75"></v-img>
 
           <v-card-title primary-title>
@@ -60,3 +60,9 @@
     }
   }
 </script>
+<style scoped>
+  .v-card {
+    max-width: 100%;
+    width: 100%;
+  }
+</style>
