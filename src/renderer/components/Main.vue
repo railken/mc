@@ -249,15 +249,13 @@
         )
       },
       cleanDirectory (directory) {
-        fs.readdir(directory, (err, files) => {
-          if (err) throw err
+        var files = fs.readdirSync(directory)
 
-          for (const file of files) {
-            fs.unlink(path.join(directory, file), err => {
-              if (err) throw err
-            })
-          }
-        })
+        for (const file of files) {
+          console.log('deleted')
+
+          fs.unlinkSync(path.join(directory, file))
+        }
       },
       installMods (version, modpack, mods) {
         if (!fs.existsSync(this.getPathModpackMods(modpack))) {
