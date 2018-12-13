@@ -73,7 +73,9 @@
       download (url) {
         this.$emit('update:log', 'Downloading: ' + url)
 
-        return download(url)
+        return download(url).catch((e) => {
+          this.$emit('update:log', e)
+        })
       },
       request (url) {
         this.$emit('update:log', 'Retrieving: ' + url)
@@ -83,6 +85,8 @@
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           }
+        }).catch((e) => {
+          this.$emit('update:log', e)
         })
       },
       async play (index, modpack) {
@@ -252,8 +256,6 @@
         var files = fs.readdirSync(directory)
 
         for (const file of files) {
-          console.log('deleted')
-
           fs.unlinkSync(path.join(directory, file))
         }
       },
