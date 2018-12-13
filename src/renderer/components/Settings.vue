@@ -8,7 +8,7 @@
       </v-card-title>
 
       <div class="content">
-
+        {{ form }}
         <v-text-field prepend-icon="attach_file" single-line v-model="form.path" label="Path" @click.native="onFocus" ref="fileTextField"></v-text-field>
         <input type="file" :multiple="false" ref="fileInput" @change="onFileChange" webkitdirectory >
 
