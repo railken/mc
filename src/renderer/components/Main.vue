@@ -40,7 +40,6 @@
   const download = require('download')
   const AdmZip = require('adm-zip')
   const os = require('os')
-  const glob = require('glob')
 
   export default {
     props: {
@@ -105,10 +104,8 @@
         this.request(modpack.minecraft.manifest).then(async (result) => {
           modpack.version = result.data.id
           await this.downloadAssets(result.data.id, result.data.assetIndex)
-          var libraries = await this.downloadLibraries(result.data.id, result.data.libraries)
-          await this.downloadClient(result.data.id, result.data.downloads.client)
-          await this.downloadForge(result.data.id, modpack.minecraft.downloads.forge)
-          await this.downloadNatives(result.data.id, modpack.minecraft.downloads.natives)
+          var libraries = await this.downloadLibraries(result.data.id, result.data.libraries.map((o) => { return o.downloads.artifact }).concat(modpack.minecraft.libraries).filter((o) => { return o }))
+          await this.downloadNatives(result.data.id, modpack.minecraft.natives)
 
           var exec = require('child_process').exec
           var command = this.createCommand(modpack, result.data.assetIndex.id, libraries)
@@ -134,22 +131,11 @@
       getPathObjectsAssets (version) {
         return this.getFileNameData('assets' + path.sep + 'objects')
       },
-      getPathClient (version) {
-        return this.getFileNameData('cache' + path.sep + version + path.sep + 'minecraft.jar')
-      },
-      getPathIndexAssets (version) {
-        return this.getFileNameData('assets' + path.sep + 'indexes' + path.sep + version + '.json')
-      },
-      getPathForge (version) {
-        return this.getFileNameData('cache' + path.sep + version + path.sep + 'modpack.jar')
-      },
       getPathModpack (modpack) {
         return this.getFileNameData('modpacks' + path.sep + modpack.slug)
       },
-      getListLibraries (version) {
-        var files = glob.sync(this.getFileNameData('cache' + path.sep + version + path.sep + 'libraries/*.jar'))
-
-        return files
+      getPathIndexAssets (version) {
+        return this.getFileNameData('assets' + path.sep + 'indexes' + path.sep + version + '.json')
       },
       downloadAndGetCommonFile (url) {
         var filepath = this.getFileNameData('cache' + path.sep + 'common' + path.sep + this.checksum(url, 'sha1'))
@@ -161,16 +147,13 @@
         return filepath
       },
       createCommand (modpack, assetIndex, libraries) {
-        libraries.push(this.getPathClient(modpack.version))
-        libraries.push(this.getPathForge(modpack.version))
-
         return 'java ' +
           '-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump ' +
           '-Xms4096m -Xmx4096m -XX:+UseG1GC -XX:MaxGCPauseMillis=4 ' +
           '-Djava.library.path=' + this.getPathNatives(modpack.version) + ' ' +
           '-Djava.net.preferIPv4Stack=true ' +
-          '-cp ' + libraries.join(';') + ' ' +
-          'net.minecraft.client.main.Main ' +
+          '-cp "' + libraries.join(';') + '" ' +
+          'net.minecraft.launchwrapper.Launch ' +
           '--username ' + this.user.selectedProfile.name + ' ' +
           '--gameDir ' + this.getPathModpack(modpack) + ' ' +
           '--assetsDir ' + this.getPathAssets(modpack.version) + ' ' +
@@ -178,7 +161,9 @@
           '--uuid ' + this.user.selectedProfile.id + ' ' +
           '--accessToken ' + this.user.accessToken + ' ' +
           '--userType mojang ' +
-          '--version ' + modpack.version + ' '
+          '--version ' + modpack.version + ' ' +
+          '--tweakClass net.minecraftforge.fml.common.launcher.FMLTweaker ' +
+          '--versionType Forge '
       },
       downloadAssets (version, assets) {
         return this.request(assets.url).then(async (result) => {
@@ -208,23 +193,21 @@
         })
       },
       async downloadLibraries (version, objects) {
+        console.log(objects)
+
         var arr = []
         var libraries = []
 
-        Object.values(objects).map((library) => {
-          if (typeof library.downloads === 'undefined' || typeof library.downloads.artifact === 'undefined') {
-            return
-          }
-
-          var object = library.downloads.artifact
-
+        Object.values(objects).map((object) => {
           var filepath = this.getFileNameData('cache' + path.sep + version + path.sep + 'libraries' + path.sep + object.path)
+
+          console.log(filepath)
 
           libraries.push(filepath)
 
           // this.$emit('update:log', 'Checking ' + filepath)
 
-          if (fs.existsSync(filepath) && this.checksum(fs.readFileSync(filepath), 'sha1') === object.sha1) {
+          if (fs.existsSync(filepath) && this.checksum(fs.readFileSync(filepath), 'sha1') === (object.sha1 || object.hash)) {
             // this.$emit('update:log', 'Skipped ' + object.hash)
             return
           }
@@ -241,19 +224,6 @@
         }
 
         return libraries
-      },
-      downloadForge (version, forge) {
-        var object = forge
-
-        var filepath = this.getPathForge(version)
-
-        if (fs.existsSync(filepath) && this.checksum(fs.readFileSync(filepath), 'sha1') === object.hash) {
-          return
-        }
-
-        return this.download(object.url).then(data => {
-          fs.outputFileSync(filepath, data)
-        })
       },
       async downloadNatives (version, forge) {
         var object = forge
@@ -288,19 +258,6 @@
           }
 
           zip.extractEntryTo(obj, basepath, false, true)
-        })
-      },
-      downloadClient (version, client) {
-        var object = client
-
-        var filepath = this.getPathClient(version)
-
-        if (fs.existsSync(filepath) && this.checksum(fs.readFileSync(filepath), 'sha1') === object.sha1) {
-          return
-        }
-
-        return this.download(object.url).then(data => {
-          fs.outputFileSync(filepath, data)
         })
       },
       downloadInstallerModpack (index, modpack) {
