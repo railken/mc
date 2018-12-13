@@ -260,7 +260,7 @@
 
         var filepath = this.getFileNameData('cache' + path.sep + version + path.sep + 'lwjgl.zip')
 
-        if (!fs.existsSync(filepath) && this.checksum(fs.readFileSync(filepath), 'sha1') === object.hash) {
+        if (!fs.existsSync(filepath) || this.checksum(fs.readFileSync(filepath), 'sha1') !== object.hash) {
           await this.download(object.url).then(data => {
             fs.outputFileSync(filepath, data)
           })
