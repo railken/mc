@@ -15,15 +15,9 @@
           </v-card-title>
 
           <v-card-actions>
-            <div v-if="isModpackFresh(modpack)">
-              <v-btn :disabled="loading" flat color="primary" @click="!loading && downloadInstallerModpack(index, modpack)">Download Installer</v-btn>
-            </div>
-            <div v-else>
-              <v-btn :disabled="loading" flat color="primary" @click="!loading && downloadInstallerModpack(index, modpack)">Update Installer</v-btn>
-            </div>
             <v-btn :disabled="loading" flat color="error" @click="!loading && removeModpack(index)">Remove</v-btn>
             <div style='flex-grow: 1'></div>
-            <v-btn :disabled="loading" flat color="primary" @click="!loading && play(modpack)">Play</v-btn>
+            <v-btn :disabled="loading" flat color="primary" @click="!loading && play(index, modpack)">Play</v-btn>
           </v-card-actions>
         </v-card>
       </v-flex>
@@ -91,7 +85,9 @@
           }
         })
       },
-      play (modpack) {
+      async play (index, modpack) {
+        await this.downloadInstallerModpack(index, modpack)
+
         return this.downloadModpack(modpack)
       },
       downloadModpack (modpack) {
@@ -103,9 +99,19 @@
 
         this.request(modpack.minecraft.manifest).then(async (result) => {
           modpack.version = result.data.id
-          await this.downloadAssets(result.data.id, result.data.assetIndex)
-          var libraries = await this.downloadLibraries(result.data.id, result.data.libraries.map((o) => { return o.downloads.artifact }).concat(modpack.minecraft.libraries).filter((o) => { return o }))
-          await this.downloadNatives(result.data.id, modpack.minecraft.natives)
+
+          var version = result.data.id
+
+          await this.downloadAssets(version, result.data.assetIndex)
+          var libraries = await this.downloadLibraries(version, result.data.libraries.map((o) => { return o.downloads.artifact }).concat(modpack.minecraft.libraries).filter((o) => { return o }))
+          await this.downloadNatives(version, modpack.minecraft.natives)
+
+          var mods = await this.downloadMods(version, modpack.minecraft.mods)
+
+          console.log(mods)
+          debugger
+
+          await this.installMods(version, modpack, mods)
 
           var exec = require('child_process').exec
           var command = this.createCommand(modpack, result.data.assetIndex.id, libraries)
@@ -128,8 +134,17 @@
       getPathAssets (version) {
         return this.getFileNameData('assets')
       },
+      getPathMods (version) {
+        return this.getFileNameData('cache' + path.sep + version + path.sep + 'mods')
+      },
       getPathObjectsAssets (version) {
         return this.getFileNameData('assets' + path.sep + 'objects')
+      },
+      getPathModpackMods (modpack) {
+        return this.getPathModpack(modpack) + path.sep + 'mods'
+      },
+      getPathLibraries (version) {
+        return this.getFileNameData('cache' + path.sep + version + path.sep + 'libraries')
       },
       getPathModpack (modpack) {
         return this.getFileNameData('modpacks' + path.sep + modpack.slug)
@@ -165,55 +180,21 @@
           '--tweakClass net.minecraftforge.fml.common.launcher.FMLTweaker ' +
           '--versionType Forge '
       },
-      downloadAssets (version, assets) {
-        return this.request(assets.url).then(async (result) => {
-          fs.outputFileSync(this.getPathIndexAssets(version), JSON.stringify(result.data))
-
-          var arr = []
-
-          Object.values(result.data.objects).map((object) => {
-            var filepath = this.getPathObjectsAssets(version) + path.sep + object.hash.substr(0, 2) + path.sep + object.hash
-            // this.$emit('update:log', 'Checking ' + filepath)
-
-            if (fs.existsSync(filepath) && this.checksum(fs.readFileSync(filepath), 'sha1') === object.hash) {
-              // this.$emit('update:log', 'Skipped ' + object.hash)
-              return
-            }
-
-            arr.push(() => {
-              return this.download('http://resources.download.minecraft.net/' + object.hash.substr(0, 2) + '/' + object.hash).then(data => {
-                fs.outputFileSync(filepath, data)
-              })
-            })
-          })
-
-          for (let i = 0; i < arr.length; i++) {
-            await arr[i]()
-          }
-        })
-      },
-      async downloadLibraries (version, objects) {
-        console.log(objects)
-
+      async manageFiles (version, objects, basePath, retrievePath, retrieveUrl) {
         var arr = []
-        var libraries = []
+        var downloaded = []
 
         Object.values(objects).map((object) => {
-          var filepath = this.getFileNameData('cache' + path.sep + version + path.sep + 'libraries' + path.sep + object.path)
+          var filepath = basePath + path.sep + retrievePath(object)
 
-          console.log(filepath)
-
-          libraries.push(filepath)
-
-          // this.$emit('update:log', 'Checking ' + filepath)
+          downloaded.push(filepath)
 
           if (fs.existsSync(filepath) && this.checksum(fs.readFileSync(filepath), 'sha1') === (object.sha1 || object.hash)) {
-            // this.$emit('update:log', 'Skipped ' + object.hash)
             return
           }
 
           arr.push(() => {
-            return this.download(object.url).then(data => {
+            return this.download(retrieveUrl(object)).then(data => {
               fs.outputFileSync(filepath, data)
             })
           })
@@ -222,8 +203,77 @@
         for (let i = 0; i < arr.length; i++) {
           await arr[i]()
         }
+        debugger
+        console.log(downloaded)
 
-        return libraries
+        return downloaded
+      },
+      async downloadLibraries (version, libraries) {
+        return this.manageFiles(
+          version,
+          libraries,
+          this.getPathLibraries(version),
+          (object) => {
+            return object.path
+          },
+          (object) => {
+            return object.url
+          }
+        )
+      },
+      downloadAssets (version, indexAssets) {
+        return this.request(indexAssets.url).then(async (result) => {
+          fs.outputFileSync(this.getPathIndexAssets(version), JSON.stringify(result.data))
+          return this.downloadAssetsObject(version, result.data.objects)
+        })
+      },
+      downloadAssetsObject (version, assets) {
+        return this.manageFiles(
+          version,
+          assets,
+          this.getPathObjectsAssets(version),
+          (object) => {
+            return object.hash.substr(0, 2) + path.sep + object.hash
+          },
+          (object) => {
+            return 'http://resources.download.minecraft.net/' + object.hash.substr(0, 2) + '/' + object.hash
+          }
+        )
+      },
+      async downloadMods (version, mods) {
+        return this.manageFiles(
+          version,
+          mods,
+          this.getPathMods(version),
+          (object) => {
+            return object.path
+          },
+          (object) => {
+            return object.url
+          }
+        )
+      },
+      cleanDirectory (directory) {
+        fs.readdir(directory, (err, files) => {
+          if (err) throw err
+
+          for (const file of files) {
+            fs.unlink(path.join(directory, file), err => {
+              if (err) throw err
+            })
+          }
+        })
+      },
+      installMods (version, modpack, mods) {
+        if (!fs.existsSync(this.getPathModpackMods(modpack))) {
+          fs.mkdirSync(this.getPathModpackMods(modpack))
+        }
+
+        this.cleanDirectory(this.getPathModpackMods(modpack))
+
+        mods.map((mod) => {
+          fs.copySync(mod, this.getPathModpackMods(modpack) + path.sep + path.basename(mod))
+        })
       },
       async downloadNatives (version, forge) {
         var object = forge
