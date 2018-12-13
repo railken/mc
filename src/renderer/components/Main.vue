@@ -108,9 +108,6 @@
 
           var mods = await this.downloadMods(version, modpack.minecraft.mods)
 
-          console.log(mods)
-          debugger
-
           await this.installMods(version, modpack, mods)
 
           var exec = require('child_process').exec
@@ -203,8 +200,6 @@
         for (let i = 0; i < arr.length; i++) {
           await arr[i]()
         }
-        debugger
-        console.log(downloaded)
 
         return downloaded
       },
