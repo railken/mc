@@ -24,16 +24,19 @@ export class Launcher {
       obj.profiles = {}
     }
 
+    console.log(modpack.minecraft)
+
     obj.profiles[modpack.slug] = {
       name: modpack.slug,
       gameDir: this.mapper.toModpack(modpack),
-      lastVersionId: modpack.minecraft.forge.id,
+      lastVersionId: modpack.minecraft.require.forge.id,
       javaArgs: '-Xmx' + (parseInt(ram) * 1024) + 'm -Xms256m -XX:PermSize=256m -Dminecraft.applet.TargetDirectory="' + this.mapper.toModpack(modpack) + '" -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Duser.language=en -Duser.country=US',
       resolution: {
         width: '1024',
         height: '768'
       },
-      launcherVisibilityOnGameClose: 'close launcher when game starts'
+      created: new Date().toISOString(),
+      lastUsed: new Date().toISOString()
     }
 
     obj.selectedProfile = modpack.slug

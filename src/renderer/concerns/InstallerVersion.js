@@ -12,7 +12,7 @@ export class InstallerVersion {
   async handle (modpack) {
     return new Downloader().manageFiles(
       modpack.minecraft.version,
-      [modpack.minecraft.forge[0]],
+      [modpack.minecraft.require.forge],
       this.getPathVersions(),
       (object) => {
         return object.id + path.sep + object.id + '.json'
