@@ -53,10 +53,7 @@ export class InstallerMods {
     }
   }
   installMods (modpack, mods) {
-    if (!fs.existsSync(this.mapper.toModpack(modpack, 'mods'))) {
-      fs.mkdirSync(this.mapper.toModpack(modpack, 'mods'))
-    }
-
+    fs.ensureDirSync(this.mapper.toModpack(modpack, 'mods'))
     this.cleanDirectory(this.mapper.toModpack(modpack, 'mods'))
 
     mods.map((mod) => {
