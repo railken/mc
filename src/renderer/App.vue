@@ -5,28 +5,11 @@
     <v-toolbar color="blue" dark app>
       <v-toolbar-title>Minecraft Launcher</v-toolbar-title>
       <div style='flex-grow:1'></div>
-      <add-modpack :user="user" v-on:update:user="setUser($event)" :data="data" v-on:update:data="setData($event)"></add-modpack>
-      <div v-if="user">
-        <v-menu class="ml-2">
-          <v-btn flat  slot="activator" >
-            <span class='mx-3'>{{ user.selectedProfile.name }}</span>
-            <img :src="'https://crafatar.com/avatars/'+user.selectedProfile.id" alt="Avatar" icon style='width:36px'>
-          </v-btn>
-          <v-list>
-            <v-list-tile :to="{'name': 'settings'}">
-              <v-list-tile-content ><v-list-tile-title>Settings</v-list-tile-title></v-list-tile-content>
-            </v-list-tile>
-            <v-list-tile>
-              <v-list-tile-content @click="logout()"><v-list-tile-title>Logout</v-list-tile-title></v-list-tile-content>
-            </v-list-tile>
-          </v-list>
-        </v-menu>
-      </div>
-      
+      <add-modpack :data="data" v-on:update:data="setData($event)"></add-modpack>
+      <v-btn flat  :to="{'name': 'settings'}"><v-icon class='mr-2'>create</v-icon>Settings</v-btn>
     </v-toolbar>
     <v-content>
       <router-view 
-        :user="user" v-on:update:user="setUser($event)" 
         :settings="settings" v-on:update:settings="setSettings($event)"
         :data="data" v-on:update:data="setData($event)"
         :log="log" v-on:update:log="addLog($event)"
@@ -56,7 +39,6 @@
     },
     data () {
       return {
-        user: null,
         settings: null,
         loading: false,
         data: [],
@@ -82,10 +64,6 @@
           }, 1)
         }
       },
-      setUser ($event) {
-        this.user = $event
-        store.set('user', $event)
-      },
       setData ($event) {
         this.data = $event
 
@@ -106,14 +84,9 @@
         }
         this.settings = $event
         store.set('settings', $event)
-      },
-      logout () {
-        this.setUser(null)
-        this.$router.push({name: 'auth'})
       }
     },
     created () {
-      this.setUser(store.get('user'))
       this.setSettings(store.get('settings'))
 
       if (!fs.existsSync(this.getFileNameData('launcher.json'))) {

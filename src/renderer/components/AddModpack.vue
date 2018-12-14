@@ -29,9 +29,6 @@
   var _ = require('lodash')
   export default {
     props: {
-      user: {
-        required: true
-      },
       data: {
         required: true
       }

@@ -13,7 +13,6 @@
               <small>{{ modpack.hash }} | {{ modpack.updated_at }}</small>
             </div>
           </v-card-title>
-          {{ settings }}
           <v-card-actions>
             <v-btn :disabled="loading" flat color="error" @click="!loading && removeModpack(index)">Remove</v-btn>
             <div style='flex-grow: 1'></div>
@@ -27,20 +26,17 @@
 </template>
 <script>
   import axios from 'axios'
+  import { InstallerMinecraft } from '@/concerns/InstallerMinecraft'
+  import { InstallerMods } from '@/concerns/InstallerMods'
+  import { InstallerVersion } from '@/concerns/InstallerVersion'
+  import { Launcher } from '@/concerns/Launcher'
+  import { Mapper } from '@/concerns/Mapper'
 
-  const path = require('path')
   const _ = require('lodash')
   const crypto = require('crypto')
-  const fs = require('fs-extra')
-  const download = require('download')
-  const AdmZip = require('adm-zip')
-  const os = require('os')
 
   export default {
     props: {
-      user: {
-        required: true
-      },
       data: {
         required: true
       },
@@ -51,32 +47,22 @@
         required: true
       }
     },
+    created () {
+      let mapper = new Mapper(this.settings.path)
+
+      this.handlers = {}
+      this.handlers.minecraft = new InstallerMinecraft(mapper)
+      this.handlers.mods = new InstallerMods(mapper)
+      this.handlers.version = new InstallerVersion(mapper)
+      this.handlers.launcher = new Launcher(mapper)
+    },
     methods: {
-      getFileNameData (file) {
-        return this.settings.path + path.sep + file
-      },
-      isModpackFresh (modpack) {
-        return !modpack.hash
-      },
       removeModpack (index) {
         var data = _.cloneDeep(this.data)
 
         delete data.modpacks[index]
 
         this.$emit('update:data', data)
-      },
-      checksum (str, algorithm, encoding) {
-        return crypto
-          .createHash(algorithm)
-          .update(str, 'binary')
-          .digest('hex')
-      },
-      download (url) {
-        this.$emit('update:log', 'Downloading: ' + url)
-
-        return download(url).catch((e) => {
-          this.$emit('update:log', e)
-        })
       },
       request (url) {
         this.$emit('update:log', 'Retrieving: ' + url)
@@ -95,221 +81,20 @@
 
         return this.downloadModpack(this.data.modpacks[index])
       },
-      downloadModpack (modpack) {
+      async downloadModpack (modpack) {
         if (!modpack.minecraft.manifest) {
           return this.$emit('update:log', 'No manifest found: ' + modpack.url)
         }
 
         this.$emit('update:loading', true)
 
-        this.request(modpack.minecraft.manifest).then(async (result) => {
-          modpack.version = result.data.id
+        await this.handlers.minecraft.handle()
+        await this.handlers.mods.handle(modpack)
+        await this.handlers.version.handle(modpack)
+        await this.handlers.launcher.handle(modpack, this.settings.ram)
+        await this.handlers.launcher.launch(modpack)
 
-          var version = result.data.id
-
-          await this.downloadAssets(version, result.data.assetIndex)
-          var libraries = await this.downloadLibraries(version, result.data.libraries.map((o) => { return o.downloads.artifact }).concat(modpack.minecraft.libraries).filter((o) => { return o }))
-          await this.downloadNatives(version, modpack.minecraft.natives)
-
-          var mods = await this.downloadMods(version, modpack.minecraft.mods)
-
-          await this.installMods(version, modpack, mods)
-
-          var exec = require('child_process').exec
-          var command = this.createCommand(modpack, result.data.assetIndex.id, libraries)
-
-          this.$emit('update:log', command)
-          this.$emit('update:loading', false)
-
-          exec(command, (error, stdout, stderr) => {
-            this.$emit('update:log', stdout)
-            this.$emit('update:log', stderr)
-            if (error !== null) {
-              this.$emit('update:log', error)
-            }
-          })
-        })
-      },
-      getPathNatives (version) {
-        return this.getFileNameData('cache' + path.sep + version + path.sep + 'natives')
-      },
-      getPathAssets (version) {
-        return this.getFileNameData('assets')
-      },
-      getPathMods (version) {
-        return this.getFileNameData('cache' + path.sep + version + path.sep + 'mods')
-      },
-      getPathObjectsAssets (version) {
-        return this.getFileNameData('assets' + path.sep + 'objects')
-      },
-      getPathModpackMods (modpack) {
-        return this.getPathModpack(modpack) + path.sep + 'mods'
-      },
-      getPathLibraries (version) {
-        return this.getFileNameData('cache' + path.sep + version + path.sep + 'libraries')
-      },
-      getPathModpack (modpack) {
-        return this.getFileNameData('modpacks' + path.sep + modpack.slug)
-      },
-      getPathIndexAssets (version) {
-        return this.getFileNameData('assets' + path.sep + 'indexes' + path.sep + version + '.json')
-      },
-      downloadAndGetCommonFile (url) {
-        var filepath = this.getFileNameData('cache' + path.sep + 'common' + path.sep + this.checksum(url, 'sha1'))
-
-        this.download(url).then(data => {
-          fs.outputFileSync(filepath, data)
-        })
-
-        return filepath
-      },
-      createCommand (modpack, assetIndex, libraries) {
-        return 'java ' +
-          '-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump ' +
-          '-Xmx' + (parseInt(this.settings.ram) * 1024) + 'm ' +
-          '-Xms256m ' +
-          '-XX:PermSize=256m ' +
-          '-Dminecraft.applet.TargetDirectory="' + this.getPathModpack(modpack) + '"' +
-          '-Djava.library.path=' + this.getPathNatives(modpack.version) + ' ' +
-          '-Djava.net.preferIPv4Stack=true ' +
-          '-Dfml.ignorePatchDiscrepancies=true ' +
-          '-Dfml.ignoreInvalidMinecraftCertificates=true ' +
-          '-cp "' + libraries.join(';') + '" ' +
-          'net.minecraft.launchwrapper.Launch ' +
-          '--username ' + this.user.selectedProfile.name + ' ' +
-          '--gameDir ' + this.getPathModpack(modpack) + ' ' +
-          '--assetsDir ' + this.getPathAssets(modpack.version) + ' ' +
-          '--assetIndex ' + modpack.version + ' ' +
-          '--uuid ' + this.user.selectedProfile.id + ' ' +
-          '--accessToken ' + this.user.accessToken + ' ' +
-          '--userType mojang ' +
-          '--version ' + modpack.version + ' ' +
-          '--tweakClass net.minecraftforge.fml.common.launcher.FMLTweaker ' +
-          '--versionType Forge '
-      },
-      async manageFiles (version, objects, basePath, retrievePath, retrieveUrl) {
-        var arr = []
-        var downloaded = []
-
-        Object.values(objects).map((object) => {
-          var filepath = basePath + path.sep + retrievePath(object)
-
-          downloaded.push(filepath)
-
-          if (fs.existsSync(filepath) && this.checksum(fs.readFileSync(filepath), 'sha1') === (object.sha1 || object.hash)) {
-            return
-          }
-
-          arr.push(() => {
-            return this.download(retrieveUrl(object)).then(data => {
-              fs.outputFileSync(filepath, data)
-            })
-          })
-        })
-
-        for (let i = 0; i < arr.length; i++) {
-          await arr[i]()
-        }
-
-        return downloaded
-      },
-      async downloadLibraries (version, libraries) {
-        return this.manageFiles(
-          version,
-          libraries,
-          this.getPathLibraries(version),
-          (object) => {
-            return object.path
-          },
-          (object) => {
-            return object.url
-          }
-        )
-      },
-      downloadAssets (version, indexAssets) {
-        return this.request(indexAssets.url).then(async (result) => {
-          fs.outputFileSync(this.getPathIndexAssets(version), JSON.stringify(result.data))
-          return this.downloadAssetsObject(version, result.data.objects)
-        })
-      },
-      downloadAssetsObject (version, assets) {
-        return this.manageFiles(
-          version,
-          assets,
-          this.getPathObjectsAssets(version),
-          (object) => {
-            return object.hash.substr(0, 2) + path.sep + object.hash
-          },
-          (object) => {
-            return 'http://resources.download.minecraft.net/' + object.hash.substr(0, 2) + '/' + object.hash
-          }
-        )
-      },
-      async downloadMods (version, mods) {
-        return this.manageFiles(
-          version,
-          mods,
-          this.getPathMods(version),
-          (object) => {
-            return object.path
-          },
-          (object) => {
-            return object.url
-          }
-        )
-      },
-      cleanDirectory (directory) {
-        var files = fs.readdirSync(directory)
-
-        for (const file of files) {
-          fs.unlinkSync(path.join(directory, file))
-        }
-      },
-      installMods (version, modpack, mods) {
-        if (!fs.existsSync(this.getPathModpackMods(modpack))) {
-          fs.mkdirSync(this.getPathModpackMods(modpack))
-        }
-
-        this.cleanDirectory(this.getPathModpackMods(modpack))
-
-        mods.map((mod) => {
-          fs.copySync(mod, this.getPathModpackMods(modpack) + path.sep + path.basename(mod))
-        })
-      },
-      async downloadNatives (version, forge) {
-        var object = forge
-
-        var filepath = this.getFileNameData('cache' + path.sep + version + path.sep + 'lwjgl.zip')
-
-        if (!fs.existsSync(filepath) || this.checksum(fs.readFileSync(filepath), 'sha1') !== object.hash) {
-          await this.download(object.url).then(data => {
-            fs.outputFileSync(filepath, data)
-          })
-        }
-
-        var zip = new AdmZip(filepath)
-
-        var conversions = {
-          win32: 'windows'
-        }
-
-        var osName = conversions[os.platform()]
-
-        zip.getEntries().filter((obj) => {
-          return obj.entryName.match(new RegExp('(.*)/native/' + osName + '/(.*)', 'g'))
-        }).forEach((obj) => {
-          if (!obj.name) {
-            return
-          }
-          var basepath = this.getPathNatives(version) + path.sep
-          var filepath = basepath + obj.name
-
-          if (fs.existsSync(filepath) && (this.checksum(fs.readFileSync(filepath), 'sha1') === this.checksum(obj.getData().toString('utf8'), 'sha1'))) {
-            return
-          }
-
-          zip.extractEntryTo(obj, basepath, false, true)
-        })
+        this.$emit('update:loading', false)
       },
       downloadInstallerModpack (index, modpack) {
         return this.request(modpack.url).then((result) => {
