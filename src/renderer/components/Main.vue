@@ -13,10 +13,11 @@
               <small>{{ modpack.hash }} | {{ modpack.updated_at }}</small>
             </div>
           </v-card-title>
-
+          {{ settings }}
           <v-card-actions>
             <v-btn :disabled="loading" flat color="error" @click="!loading && removeModpack(index)">Remove</v-btn>
             <div style='flex-grow: 1'></div>
+            <v-btn :disabled="loading" flat color="primary" @click="!loading && downloadInstallerModpack(index, modpack)">Update</v-btn>
             <v-btn :disabled="loading" flat color="primary" @click="!loading && play(index, modpack)">Play</v-btn>
           </v-card-actions>
         </v-card>
@@ -92,7 +93,7 @@
       async play (index, modpack) {
         await this.downloadInstallerModpack(index, modpack)
 
-        return this.downloadModpack(modpack)
+        return this.downloadModpack(this.data.modpacks[index])
       },
       downloadModpack (modpack) {
         if (!modpack.minecraft.manifest) {
@@ -165,9 +166,14 @@
       createCommand (modpack, assetIndex, libraries) {
         return 'java ' +
           '-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump ' +
-          '-Xms4096m -Xmx4096m -XX:+UseG1GC -XX:MaxGCPauseMillis=4 ' +
+          '-Xmx' + (parseInt(this.settings.ram) * 1024) + 'm ' +
+          '-Xms256m ' +
+          '-XX:PermSize=256m ' +
+          '-Dminecraft.applet.TargetDirectory="' + this.getPathModpack(modpack) + '"' +
           '-Djava.library.path=' + this.getPathNatives(modpack.version) + ' ' +
           '-Djava.net.preferIPv4Stack=true ' +
+          '-Dfml.ignorePatchDiscrepancies=true ' +
+          '-Dfml.ignoreInvalidMinecraftCertificates=true ' +
           '-cp "' + libraries.join(';') + '" ' +
           'net.minecraft.launchwrapper.Launch ' +
           '--username ' + this.user.selectedProfile.name + ' ' +
