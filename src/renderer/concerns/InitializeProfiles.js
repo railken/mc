@@ -17,15 +17,13 @@ export class InitializeProfiles {
       obj = {}
     }
 
-    if (!obj.profiles) {
-      obj.profiles = {}
-    }
+    obj.profiles = {}
 
     obj.profiles[modpack.slug] = {
       name: modpack.slug,
       gameDir: this.mapper.toModpack(modpack),
       lastVersionId: modpack.minecraft.profile.id,
-      javaArgs: '-Xmx' + (parseInt(ram) * 1024) + 'm -Xms256m -XX:PermSize=256m -Dminecraft.applet.TargetDirectory="' + this.mapper.toModpack(modpack) + '" -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Duser.language=en -Duser.country=US',
+      javaArgs: '-Xmx' + (parseInt(ram) * 1024) + 'm -Xms256m -XX:PermSize=256m -Dminecraft.applet.TargetDirectory="' + this.mapper.toModpack(modpack) + '" -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Djava.net.preferIPv4Stack=true',
       resolution: {
         width: '1024',
         height: '768'

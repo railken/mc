@@ -8,7 +8,7 @@
           <span class="headline">New Modpack</span>
         </v-card-title>
         <v-card-text>
-          <v-text-field label="Slug" placeholder='E.g. my-modpack-project' required v-model="form.slug"></v-text-field>
+          <v-text-field label="Slug" placeholder='E.g. my-modpack-project' required v-model="form.slug" :rules="[() => (!!form.slug && form.slug.match(/^[a-z0-9_\-]+$/i) != false) || 'Only a-z0-9_- allowed']"></v-text-field>
           <v-autocomplete
             :items="['HTTP-JSON']"
             label="Type"
@@ -38,12 +38,16 @@
       form: {
         type: 'HTTP-JSON',
         url: null,
-        slug: 'my-modpack'
+        slug: null
       }
     }),
     methods: {
       addModpack () {
-        if (!this.form.url || !this.form.type) {
+        if (!this.form.url || !this.form.type || !this.form.slug) {
+          return
+        }
+
+        if (!this.form.slug.match(/^[a-z0-9_-]+$/i)) {
           return
         }
 

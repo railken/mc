@@ -33,18 +33,7 @@ export class InstallerMods {
       return
     }
 
-    var files = fs.readdirSync(directory)
-
-    for (const file of files) {
-      var fullpath = path.join(directory, file)
-
-      if (fs.lstatSync(fullpath).isDirectory()) {
-        this.cleanDirectory(fullpath)
-        fs.rmdirSync(fullpath)
-      } else {
-        fs.unlinkSync(fullpath)
-      }
-    }
+    fs.removeSync(directory)
   }
   installMods (modpack, mods) {
     fs.ensureDirSync(this.mapper.toModpack(modpack, 'mods'))

@@ -1,17 +1,17 @@
 <template>
-  <v-container fluid >
+  <v-container fluid pa-4 >
     <v-card v-if="form">
       <v-card-title primary-title>
         <div>
           <h3 class="headline mb-0">Settings</h3>
         </div>
       </v-card-title>
-
       <div class="content">
-        <v-text-field prepend-icon="attach_file" single-line v-model="form.path" label="Path" @click.native="onFocus" ref="fileTextField"></v-text-field>
-        <input type="file" :multiple="false" ref="fileInput" @change="onFileChange" webkitdirectory >
-
-
+        <div class="fluid">
+          <v-text-field single-line v-model="form.path" label="Path" ref="fileTextField" class="fill"></v-text-field>
+          <input type="file" :multiple="false" ref="fileInput" @change="onFileChange" webkitdirectory >
+          <v-btn @click.native="onFocus" color="primary"><v-icon>folder</v-icon><span class="ml-2">Browse</span></v-btn>
+        </div>
         <v-card-text>
           <v-slider
             v-model="form.ram"
@@ -23,9 +23,7 @@
             thumb-label="always"
           ></v-slider>
         </v-card-text>
-
       </div>
-
       <v-card-actions tx-align-right style='padding: 20px'>
         <div style='flex-grow:1'></div>
         <v-btn  color="primary" @click="onBack()">Back</v-btn>
@@ -54,7 +52,7 @@
         this.$refs.fileInput.click()
       },
       onFileChange ($event) {
-        this.form.path = $event.target.value
+        this.form.path = $event.target.files[0].path
       },
       onUpdate () {
         this.$emit('update:settings', this.form)
@@ -81,5 +79,15 @@
   }
   .v-card {
     max-width: 100%;
+    width: 100%;
+  }
+
+  .fluid {
+    display: flex;
+  }
+
+  .fill {
+    flex-grow: 1;
+    width: 100%;
   }
 </style>

@@ -6,22 +6,17 @@
       <v-toolbar-title>Minecraft Launcher</v-toolbar-title>
       <div style='flex-grow:1'></div>
       <add-modpack :data="data" v-on:update:data="setData($event)"></add-modpack>
-      <v-btn flat  :to="{'name': 'settings'}"><v-icon class='mr-2'>create</v-icon>Settings</v-btn>
+      <v-btn flat  :to="{'name': 'settings'}" style='padding: 0 15px'><v-icon class='mr-2'>create</v-icon>Settings</v-btn>
     </v-toolbar>
     <v-content>
       <router-view 
         :settings="settings" v-on:update:settings="setSettings($event)"
         :data="data" v-on:update:data="setData($event)"
-        :log="log" v-on:update:log="addLog($event)"
         :loading="loading" v-on:update:loading="loading = $event"
       ></router-view>
     </v-content>
 
     <v-footer app dark>
-      <div class="log-title" @click="showLogs = !showLogs">Console: {{ log.length }} logs</div>
-      <div ref="logs" class="logs" v-if="showLogs">
-        <pre v-for="l in log">{{ l.date.toLocaleString() }} {{ l.message }}</pre>
-      </div>
       <v-progress-linear v-if="loading" :indeterminate="true" height='15'></v-progress-linear>
     </v-footer>
   </v-app>
@@ -41,28 +36,12 @@
       return {
         settings: null,
         loading: false,
-        data: [],
-        log: [
-          {message: 'Welcome \n\n', date: new Date()}
-        ],
-        showLogs: false
+        data: []
       }
     },
     methods: {
       getFileNameData (file) {
         return this.settings.path + path.sep + file
-      },
-      addLog ($event) {
-        this.log.push({
-          message: $event,
-          date: new Date()
-        })
-
-        if (this.$refs.logs) {
-          setTimeout(() => {
-            this.$refs.logs.scrollTop = this.$refs.logs.scrollHeight
-          }, 1)
-        }
       },
       setData ($event) {
         this.data = $event
@@ -77,22 +56,34 @@
       },
       setSettings ($event) {
         if ($event === null) {
-          $event = {
-            path: (process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local')) + path.sep + 'mc-wine',
-            ram: 1
-          }
+          $event = {}
         }
+
+        if (!$event.path) {
+          $event.path = (process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local')) + path.sep + 'minecraft'
+        }
+
+        if (!$event.ram) {
+          $event.ram = 1
+        }
+
         this.settings = $event
         store.set('settings', $event)
+        this.loadData()
+      },
+      loadSettings () {
+        this.setSettings(store.get('settings'))
+      },
+      loadData () {
+        if (!fs.existsSync(this.getFileNameData('launcher.json'))) {
+          this.setData()
+        }
+
+        this.setData(fs.readJSONSync(this.getFileNameData('launcher.json'), 'utf8'))
       }
     },
     created () {
-      this.setSettings(store.get('settings'))
-
-      if (!fs.existsSync(this.getFileNameData('launcher.json'))) {
-        this.setData()
-      }
-      this.setData(fs.readJSONSync(this.getFileNameData('launcher.json'), 'utf8'))
+      this.loadSettings()
     }
   }
 </script>
@@ -106,9 +97,6 @@
     padding: 0;
   }
 
-  .log {
-    white-space: nowrap;
-  }
 
   .v-footer {
     font-size: 12px;
@@ -119,20 +107,5 @@
 
   .v-footer > div {
     width: 100%;
-  }
-  .v-footer .logs {
-    height: 256px;
-    overflow-y: scroll;
-    padding: 10px;
-  }
-
-  .log-title {
-    padding: 10px; 
-    background: rgba(255,255,255, 0.1);
-    cursor: pointer;
-  }
-
-  .log-title:hover {
-    background: rgba(255,255,255, 0.2);
   }
 </style>

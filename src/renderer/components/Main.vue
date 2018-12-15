@@ -15,8 +15,15 @@
           <v-card-actions>
             <v-btn :disabled="loading" flat color="error" @click="!loading && removeModpack(index)">Remove</v-btn>
             <div style='flex-grow: 1'></div>
-            <v-btn :disabled="loading" flat color="primary" @click="!loading && downloadInstallerModpack(index, modpack)">Update</v-btn>
+            <v-btn :disabled="loading" flat color="primary" @click="!loading && downloadInstaller(index, modpack)">Update</v-btn>
             <v-btn :disabled="loading" flat color="primary" @click="!loading && play(index, modpack)">Play</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-flex>
+      <v-flex v-if="Object.values(data.modpacks).length === 0" xs12 md12 pa-4>
+        <v-card class="mod">
+          <v-card-actions primary-title>
+            No modpacks found
           </v-card-actions>
         </v-card>
       </v-flex>
@@ -26,10 +33,14 @@
 <script>
   import { Launcher } from '@/concerns/Launcher'
   import { Mapper } from '@/concerns/Mapper'
+  import AddModpack from '@/components/AddModpack'
   import { InstallerManifest } from '@/concerns/InstallerManifest'
   const _ = require('lodash')
 
   export default {
+    components: {
+      AddModpack
+    },
     props: {
       data: {
         required: true
@@ -49,10 +60,18 @@
 
         this.$emit('update:data', data)
       },
-      async play (index, modpack) {
-        await this.downloadInstallerModpack(index, modpack)
+      play (index, modpack) {
+        this.downloadInstaller(index, modpack)
+        this.downloadModpack(this.data.modpacks[index])
+      },
+      async downloadInstaller (index, modpack) {
+        let installer = new InstallerManifest(this.mapper)
+        modpack = await installer.handle(modpack)
 
-        return this.downloadModpack(this.data.modpacks[index])
+        var data = _.cloneDeep(this.data)
+        data.modpacks[index] = modpack
+
+        this.$emit('update:data', data)
       },
       async downloadModpack (modpack) {
         this.$emit('update:loading', true)
@@ -65,15 +84,6 @@
         })
 
         this.$emit('update:loading', false)
-      },
-      async downloadInstallerModpack (index, modpack) {
-        let installer = new InstallerManifest(this.mapper)
-        modpack = await installer.handle(modpack)
-
-        var data = _.cloneDeep(this.data)
-        data.modpacks[index] = modpack
-
-        this.$emit('update:data', data)
       }
     }
   }
