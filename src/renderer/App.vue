@@ -73,7 +73,7 @@
           }
         }
 
-        fs.outputJsonSync(this.getFileNameData('launcher.json'), $event)
+        fs.outputJsonSync(this.getFileNameData('launcher.json'), $event, {spaces: 2})
       },
       setSettings ($event) {
         if ($event === null) {

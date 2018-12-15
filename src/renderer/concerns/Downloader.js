@@ -2,6 +2,7 @@ const fs = require('fs-extra')
 const crypto = require('crypto')
 const download = require('download')
 const path = require('path')
+const axios = require('axios')
 
 export class Downloader {
   download (url) {
@@ -45,6 +46,8 @@ export class Downloader {
 
       arr.push(() => {
         return this.download(retrieveUrl(object)).then(data => {
+          console.log('Saved to: ' + filepath)
+
           fs.outputFileSync(filepath, data)
         })
       })
@@ -55,5 +58,15 @@ export class Downloader {
     }
 
     return downloaded
+  }
+  async requestSync (url) {
+    console.log('Retrieving: ' + url)
+
+    return axios.get(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
   }
 }

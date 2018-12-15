@@ -7,17 +7,11 @@ export class InstallerMods {
   constructor (mapper) {
     this.mapper = mapper
   }
-  getPathMods (version) {
-    return this.mapper.toGame('cache' + path.sep + version + path.sep + 'mods')
-  }
-  getPathModpackMods (modpack) {
-    return this.mapper.toModpack(modpack, 'mods')
-  }
   async handle (modpack) {
     var mods = await new Downloader().manageFiles(
       modpack.minecraft.version,
       modpack.minecraft.mods,
-      this.getPathMods(modpack.minecraft.version),
+      this.mapper.toGame('cache' + path.sep + modpack.minecraft.version + path.sep + 'mods'),
       (object) => {
         return object.path
       },
