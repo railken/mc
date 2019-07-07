@@ -34,12 +34,9 @@ export class Downloader {
   async manageFiles (version, objects, basePath, retrievePath, retrieveUrl) {
     var arr = []
     var downloaded = []
-
     Object.values(objects).map((object) => {
       var filepath = basePath + path.sep + retrievePath(object)
-
       downloaded.push(filepath)
-
       if (fs.existsSync(filepath)) {
         return
       }

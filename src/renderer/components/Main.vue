@@ -15,7 +15,7 @@
           <v-card-actions>
             <v-btn :disabled="loading" flat color="error" @click="!loading && removeModpack(index)">Remove</v-btn>
             <div style='flex-grow: 1'></div>
-            <v-btn :disabled="loading" flat color="primary" @click="!loading && downloadInstaller(index, modpack)">Update</v-btn>
+            <v-btn :disabled="loading" flat color="primary" @click="!loading && update(index, modpack)">Update</v-btn>
             <v-btn :disabled="loading" flat color="primary" @click="!loading && play(index, modpack)">Play</v-btn>
           </v-card-actions>
         </v-card>
@@ -35,6 +35,7 @@
   import { Mapper } from '@/concerns/Mapper'
   import AddModpack from '@/components/AddModpack'
   import { InstallerManifest } from '@/concerns/InstallerManifest'
+  import { remote } from 'electron'
   const _ = require('lodash')
 
   export default {
@@ -60,9 +61,32 @@
 
         this.$emit('update:data', data)
       },
-      play (index, modpack) {
-        this.downloadInstaller(index, modpack)
-        this.downloadModpack(this.data.modpacks[index])
+      async play (index, modpack) {
+        this.$emit('update:loading', true)
+
+        let launcher = this.getLauncher()
+
+        await launcher.launch({
+          modpack: modpack,
+          ram: this.settings.ram
+        }).then(e => {
+          remote.getCurrentWindow().close()
+        })
+        this.$emit('update:loading', false)
+      },
+      async update (index, modpack) {
+        this.$emit('update:loading', true)
+
+        let launcher = this.getLauncher()
+
+        await this.downloadInstaller(index, modpack)
+
+        await launcher.update({
+          modpack: modpack,
+          ram: this.settings.ram
+        })
+
+        this.$emit('update:loading', false)
       },
       async downloadInstaller (index, modpack) {
         let installer = new InstallerManifest(this.mapper)
@@ -73,17 +97,8 @@
 
         this.$emit('update:data', data)
       },
-      async downloadModpack (modpack) {
-        this.$emit('update:loading', true)
-
-        var launcher = new Launcher(new Mapper(this.settings.path))
-
-        await launcher.launch({
-          modpack: modpack,
-          ram: this.settings.ram
-        })
-
-        this.$emit('update:loading', false)
+      getLauncher () {
+        return new Launcher(new Mapper(this.settings.path))
       }
     }
   }
