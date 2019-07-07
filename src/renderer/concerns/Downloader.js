@@ -35,7 +35,13 @@ export class Downloader {
     var arr = []
     var downloaded = []
     Object.values(objects).map((object) => {
-      var filepath = basePath + path.sep + retrievePath(object)
+      let objPath = retrievePath(object)
+
+      if (!objPath) {
+        return
+      }
+
+      var filepath = basePath + path.sep + objPath
       downloaded.push(filepath)
       if (fs.existsSync(filepath)) {
         return
