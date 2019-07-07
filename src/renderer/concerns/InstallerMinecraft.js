@@ -6,6 +6,6 @@ export class InstallerMinecraft {
     this.mapper = mapper
   }
   async handle () {
-    return new Downloader().ensureDownloaded(this.url, this.mapper.toMinecraftExe(), 'c9b11bc96b23ea3e08c45e9e04fa9d3d6ae47fe7')
+    return new Downloader().ensureDownloaded(this.url, this.mapper.toMinecraftExe(), '8d2d13d9110ba2eed99da6f32c8967a79799f54c')
   }
 }
