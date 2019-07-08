@@ -1,6 +1,5 @@
 <template>
   <v-app :dark="false">
-    <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
     <link href='https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons' rel="stylesheet">
     <v-toolbar color="blue" dark app>
       <v-toolbar-title>Minecraft Launcher</v-toolbar-title>
@@ -89,7 +88,6 @@
 </script>
 
 <style scoped>
-  @import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons');
 
   * {
     box-sizing: border-box;
