@@ -70,8 +70,11 @@
           modpack: modpack,
           ram: this.settings.ram
         }).then(e => {
-          remote.getCurrentWindow().close()
+          setTimeout(function () {
+            remote.getCurrentWindow().close()
+          }, 1000)
         })
+
         this.$emit('update:loading', false)
       },
       async update (index, modpack) {
