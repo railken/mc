@@ -1,6 +1,6 @@
 {
-  "name": "mc",
-  "version": "0.0.1",
+  "name": "mc-electron-launcher",
+  "version": "0.1.0",
   "author": "railken <railken@protonmail.ch>",
   "description": "An electron-vue project",
   "license": null,
